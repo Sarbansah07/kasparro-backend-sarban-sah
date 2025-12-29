@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    container_name: kasparro_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: kasparro_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  api:
+    build: .
+    container_name: kasparro_api
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://user:password@db/kasparro_db
+      API_KEY: ${API_KEY}
+    ports:
+      - "80:80"
+    command: gunicorn -w 4 -b 0.0.0.0:80 'api.app:create_app()'
+
+  etl:
+    build: .
+    container_name: kasparro_etl
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://user:password@db/kasparro_db
+      API_KEY: ${API_KEY}
+    command: python -m ingestion.main
+
+volumes:
+  postgres_data:
